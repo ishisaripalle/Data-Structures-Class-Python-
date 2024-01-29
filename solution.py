@@ -1,231 +1,301 @@
-"""
-CSE331 Project 6 SS'23
-Circular Double-Ended Queue
-solution.py
-"""
-from collections import deque
 from typing import TypeVar, List
-from random import randint, shuffle
-from timeit import default_timer
-# from matplotlib import pyplot as plt  # COMMENT OUT THIS LINE (and `plot_speed`) if you dont want matplotlib
-import gc
+
+# for more information on type hinting, check out https://docs.python.org/3/library/typing.html
+T = TypeVar("T")  # represents generic type
+Node = TypeVar("Node")  # represents a Node object (forward-declare to use in Node __init__)
+DLL = TypeVar("DLL")
 
 
-T = TypeVar('T')
+# pro tip: PyCharm auto-renders docstrings (the multiline strings under each function definition)
+# in its "Documentation" view when written in the format we use here. Open the "Documentation"
+# view to quickly see what a function does by placing your cursor on it and using CTRL + Q.
+# https://www.jetbrains.com/help/pycharm/documentation-tool-window.html
 
 
-class CircularDeque:
+class Node:
     """
-    Representation of a Circular Deque using an underlying python list
+    Implementation of a doubly linked list node.
+    Do not modify.
     """
+    __slots__ = ["value", "next", "prev", "child"]
 
-    __slots__ = ['capacity', 'size', 'queue', 'front', 'back']
-
-    def __init__(self, data: List[T] = None, front: int = 0, capacity: int = 4):
+    def __init__(self, value: T, next: Node = None, prev: Node = None, child: Node = None) -> None:
         """
-        Initializes an instance of a CircularDeque
-        :param data: starting data to add to the deque, for testing purposes
-        :param front: where to begin the insertions, for testing purposes
-        :param capacity: number of slots in the Deque
+        Construct a doubly linked list node.
+
+        :param value: value held by the Node.
+        :param next: reference to the next Node in the linked list.
+        :param prev: reference to the previous Node in the linked list.
+        :return: None.
         """
-        if data is None and front != 0:
-            data = ['Start']  # front will get set to 0 by a front enqueue if the initial data is empty
-        elif data is None:
-            data = []
+        self.next = next
+        self.prev = prev
+        self.value = value
 
-        self.capacity: int = capacity
-        self.size: int = len(data)
-        self.queue: List[T] = [None] * capacity
-        self.back: int = (self.size + front - 1) % self.capacity if data else None
-        self.front: int = front if data else None
+        # The child attribute is only used for the application problem
+        self.child = child
 
-        for index, value in enumerate(data):
-            self.queue[(index + front) % capacity] = value
+    def __repr__(self) -> str:
+        """
+        Represents the Node as a string.
+
+        :return: string representation of the Node.
+        """
+        return f"Node({str(self.value)})"
+
+    __str__ = __repr__
+
+
+class DLL:
+    """
+    Implementation of a doubly linked list without padding nodes.
+    Modify only below indicated line.
+    """
+    __slots__ = ["head", "tail", "size"]
+
+    def __init__(self) -> None:
+        """
+        Construct an empty doubly linked list.
+
+        :return: None.
+        """
+        self.head = self.tail = None
+        self.size = 0
+
+    def __repr__(self) -> str:
+        """
+        Represent the DLL as a string.
+
+        :return: string representation of the DLL.
+        """
+        result = []
+        node = self.head
+        while node is not None:
+            result.append(str(node))
+            node = node.next
+            if node is self.head:
+                break
+        return " <-> ".join(result)
 
     def __str__(self) -> str:
         """
-        Provides a string representation of a CircularDeque
-        'F' indicates front value
-        'B' indicates back value
-        :return: the instance as a string
-        """
-        if self.size == 0:
-            return "CircularDeque <empty>"
+        Represent the DLL as a string.
 
-        str_list = ["CircularDeque <"]
-        for i in range(self.capacity):
-            str_list.append(f"{self.queue[i]}")
-            if i == self.front:
-                str_list.append('(F)')
-            elif i == self.back:
-                str_list.append('(B)')
-            if i < self.capacity - 1:
-                str_list.append(',')
-
-        str_list.append(">")
-        return "".join(str_list)
-
-    __repr__ = __str__
-
-    #
-    # Your code goes here!
-    #
-    def __len__(self) -> int:
+        :return: string representation of the DLL.
         """
-        Returns the length/size of the circular deque - this is the number of items
-        currently in the circular deque, and will not necessarily be equal to the capacity
-        params: none
-        returns: int representing length of the circular deque
-        """
-        return self.size
+        return repr(self)
 
-    def is_empty(self) -> bool:
+    def __eq__(self, other: DLL) -> bool:
         """
-        Returns a boolean indicating if the circular deque is empty
-        params: none
-        returns: True if empty, False otherwise
+        :param other: compares equality with this List
+        :return: True if equal otherwise False
         """
-        if self.size > 0:
-            return False
-        else:
+        cur_node = self.head
+        other_node = other.head
+        while True:
+            if cur_node != other_node:
+                return False
+            if cur_node is None and other_node is None:
+                return True
+            if cur_node is None or other_node is None:
+                return False
+            cur_node = cur_node.next
+            other_node = other_node.next
+            if cur_node is self.head and other_node is other.head:
+                return True
+            if cur_node is self.head or other_node is other.head:
+                return False
+
+    # MODIFY BELOW #
+    # Refer to the classes provided to understand the problems better#
+
+    def empty(self) -> bool:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        if self.head is None and self.tail is None:
             return True
+        return False
 
-    def front_element(self) -> T:
+    def push(self, val: T, back: bool = True) -> None:
         """
-        Returns the first element in the circular deque
-        params: none
-        returns: the first element if it exists, otherwise None
+        INSERT DOCSTRINGS HERE!
         """
-        if self.is_empty():
-            return None
-        else:
-            return self.queue[self.front]
-
-    def back_element(self) -> T:
-        """
-        Returns the last element in the circular deque
-        params: none
-        returns: the last element if it exists, otherwise None
-        """
-        if self.is_empty():
-            return None
-        else:
-            return self.queue[self.back]
-
-    def enqueue(self, value: T, front: bool = True) -> None:
-        """
-        Add a value to either the front or back of the circular
-        deque based off the parameter front
-        params: value, front
-        returns: none
-        """
-        if self.is_empty():
-            self.front = 0
-            self.back = 0
-            self.queue[self.front] = value
-            self.size += 1
-        else:
-            if front is True:
-                self.front = (self.front - 1) % self.capacity
-                self.queue[self.front] = value
+        new_node = Node(val)
+        if self.empty() == False:
+            if not back:
+                self.head.prev = new_node
+                new_node.next = self.head
+                self.head = new_node
             else:
-                self.back = (self.back + 1) % self.capacity
-                self.queue[self.back] = value
-            self.size += 1
-            if self.size == self.capacity:
-                self.grow()
-
-    def dequeue(self, front: bool = True) -> T:
-        """
-        Remove an item from the queue
-        params: front
-        returns: removed item, None if empty
-        """
-        if self.is_empty():
-            return None
+                self.tail.next = new_node
+                new_node.prev = self.tail
+                self.tail = new_node
         else:
-            if front is True:
-                value = self.queue[self.front]
-                self.front = (self.front + 1) % self.capacity
-            else:
-                value = self.queue[self.back]
-                self.back = (self.back - 1) % self.capacity
+            self.head = new_node
+            self.tail = new_node
+        self.size += 1
+
+    def pop(self, back: bool = True) -> None:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        if self.size == 1:
+            self.head = None
+            self.tail = None
+            self.size = 0
+        if self.size > 1:
+            if self.empty():
+                if not back:
+                    self.head = self.head.next
+                    self.head.prev = None
+                else:
+                    self.tail = self.tail.prev
+                    self.tail.next = None
             self.size -= 1
-            if self.size <= (self.capacity // 4) and (self.capacity // 2) >= 4:
-                self.shrink()
-            return value
 
-    def grow(self) -> None:
+    def list_to_dll(self, source: List[T]) -> None:
         """
-        Doubles the capacity of CD by creating a new underlying python list
-        with double the capacity of the old one and copies the values over from the
-        current list
-        params: none
-        returns: none
+        INSERT DOCSTRINGS HERE!
         """
-        new_deque = [None] * (self.capacity * 2)
-        for i in range(self.size):
-            new_deque[i] = self.queue[(self.front + i) % self.capacity]
-        self.queue = new_deque
-        self.front = 0
-        self.back = len(self) - 1
-        self.capacity = self.capacity * 2
-
-    def shrink(self) -> None:
-        """
-        Cuts the capacity of the queue in half using the same idea as grow.
-        Copy over contents of the old list to a new list with half the capacity.
-        params: none
-        returns: none
-        """
-        if (self.capacity // 2) < 4:
-            return
+        self.size = 0
+        if not self.empty():
+            self.head = None
+            self.tail = None
+            for i in source:
+                self.push(i)
         else:
-            new_deque = [None] * (self.capacity // 2)
-            for i in range(self.size):
-                new_deque[i] = self.queue[(self.front + i) % self.capacity]
-            self.queue = new_deque
-            self.front = 0
-            self.back = len(self) - 1
-            self.capacity = self.capacity // 2
+            for i in source:
+                self.push(i)
+
+    def dll_to_list(self) -> List[T]:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        the_list = []
+        current = self.head
+        if not self.empty():
+            while current:
+                the_list.append(current.value)
+                current = current.next
+            return the_list
+        else:
+            return the_list
+
+    def _find_nodes(self, val: T, find_first: bool = False) -> List[Node]:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        the_list = []
+        current = self.head
+        if not find_first:
+            while current:
+                if current.value is val:
+                    the_list.append(current)
+                    current = current.next
+                else:
+                    current = current.next
+            return the_list
+        else:
+            while self.head:
+                if self.head.value is val:
+                    the_list.append(self.head.value)
+                    break
+            return the_list
+
+    def find(self, val: T) -> Node:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        the_list = self._find_nodes(val)
+        if len(the_list) >= 1:
+            return the_list[0]
+        else:
+            return None
+
+    def find_all(self, val: T) -> List[Node]:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        the_list = self._find_nodes(val)
+        return the_list
+
+    def _remove_node(self, to_remove: Node) -> None:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        if to_remove is None:
+            return
+        if to_remove is self.head:
+            if to_remove is self.tail:
+                self.head = None
+                self.tail = None
+            else:
+                self.head = self.head.next
+                self.head.prev = None
+            self.size -= 1
+        elif to_remove is self.tail:
+            self.tail = self.tail.prev
+            self.tail.next = None
+            self.size -= 1
+        else:
+            to_remove.next.prev = to_remove.prev
+            to_remove.prev.next = to_remove.next
+            self.size -= 1
+
+    def remove(self, val: T) -> bool:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        found_node = self.find(val)
+        size = self.size
+        self._remove_node(found_node)
+        if self.size == size:
+            return False
+        return True
+
+    def remove_all(self, val: T) -> int:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        count = 0
+        the_list = self.find_all(val)
+        for i in range(len(the_list)):
+            self._remove_node(the_list[i])
+            count += 1
+        return count
+
+    def reverse(self) -> None:
+        """
+        INSERT DOCSTRINGS HERE!
+        """
+        current = self.head
+        while current is not None:
+            previous = current.next
+            current.next = current.prev
+            current.prev = previous
+            current = current.prev
+        previous = self.head
+        self.head = self.tail
+        self.tail = previous
+
+def dream_escaper(dll: DLL) -> DLL:
+    """
+    INSERT DOCSTRING HERE!
+    """
+    new_dll = DLL()
+    stack = []
+    current = dll.head
+    while current:
+        if current.child:
+            if current.next:
+                stack.append(current)
+            new_dll.push(current.value)
+            current = current.child
+        new_dll.push(current.value)
+        if current.next is None and stack:
+            current = stack.pop()
+        current = current.next
+    return new_dll
 
 
-def get_winning_numbers(numbers: List[int], size: int) -> List[int]:
-    """
-    Takes in a list of numbers and a sliding window size and returns a
-    list containing the maximum value of the sliding window at each iteration step
-    params: numbers, size
-    returns: a list containing the max sliding window at each iteration step
-    """
-    winning_numbers = []
-    window = CircularDeque()
-    if not numbers:
-        return []
-    else:
-        for i in range(len(numbers)):
-            while window and window.front_element() < numbers[i]:
-                window.dequeue()
-            window.enqueue(numbers[i])
-            winning_numbers.append(window.back_element())
-            if numbers[i - size + 1] == window.back_element():
-                window.dequeue(front=False)
-        return winning_numbers[size-1:]
-
-    
-def get_winning_probability(winning_numbers: List[int]) -> int:
-    """
-    Takes in a list of winning numbers and returns the probability of
-    the numbers winning by finding the largest sum of non-adjacent numbers
-    params: winning_numbers
-    returns: an integer representing the probability of the numbers winning
-    """
-    if not winning_numbers:
-        return 0
-    elif 0 < len(winning_numbers) <= 2:
-        return max(winning_numbers)
-    else:
-        i = winning_numbers[0]
-        j = 0
-        for k in range(1, len(winning_numbers)):
-            i, j = j + winning_numbers[k], max(j, i)
-        return max(i, j)
